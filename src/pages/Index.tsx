@@ -24,7 +24,7 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Icon name="Wind" className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900">ВентСтрой</span>
+              <span className="text-2xl font-bold text-gray-900">Климат39</span>
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#services" className="text-gray-600 hover:text-blue-600 transition-colors">Услуги</a>
@@ -295,7 +295,7 @@ const Index = () => {
                   <Icon name="Mail" className="h-6 w-6 text-blue-600" />
                   <div>
                     <p className="font-semibold">Email:</p>
-                    <p className="text-gray-600">info@ventstroi.ru</p>
+                    <p className="text-gray-600">info@klimat39.ru</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
@@ -319,7 +319,7 @@ const Index = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Icon name="Wind" className="h-8 w-8 text-blue-400" />
-                <span className="text-2xl font-bold">ВентСтрой</span>
+                <span className="text-2xl font-bold">Климат39</span>
               </div>
               <p className="text-gray-400">
                 Профессиональные решения в области вентиляции и кондиционирования
@@ -345,13 +345,13 @@ const Index = () => {
               <h4 className="font-semibold mb-4">Контакты</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>+7 (495) 123-45-67</li>
-                <li>info@ventstroi.ru</li>
+                <li>info@klimat39.ru</li>
                 <li>г. Москва, ул. Промышленная, д. 15</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 ВентСтрой. Все права защищены.</p>
+            <p>&copy; 2024 Климат39. Все права защищены.</p>
           </div>
         </div>
       </footer>
