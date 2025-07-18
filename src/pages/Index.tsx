@@ -35,7 +35,7 @@ const Index = () => {
             </nav>
             <div className="flex items-center space-x-2">
               <Button className="bg-blue-600 hover:bg-blue-700">
-                Консультация
+                Позвонить
               </Button>
               <Button 
                 variant="ghost" 
