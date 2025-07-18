@@ -2,8 +2,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { useState } from 'react';
+import AdminPanel from '@/components/AdminPanel';
+import ContactForm from '@/components/ContactForm';
+import ProjectGallery from '@/components/ProjectGallery';
 
 const Index = () => {
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleFormSubmit = (formData: any) => {
+    console.log('Получена заявка:', formData);
+    // Здесь можно добавить отправку на сервер
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -21,9 +33,26 @@ const Index = () => {
               <a href="#certificates" className="text-gray-600 hover:text-blue-600 transition-colors">Сертификаты</a>
               <a href="#contacts" className="text-gray-600 hover:text-blue-600 transition-colors">Контакты</a>
             </nav>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              Консультация
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Консультация
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  const password = prompt('Введите пароль администратора:');
+                  if (password === 'admin123') {
+                    setIsAuthenticated(true);
+                    setIsAdminOpen(true);
+                  } else {
+                    alert('Неверный пароль');
+                  }
+                }}
+              >
+                <Icon name="Settings" className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -195,75 +224,7 @@ const Index = () => {
       {/* Projects Section */}
       <section id="projects" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Наши объекты
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Реализованные проекты в различных отраслях промышленности
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Торговый центр",
-                area: "15,000 м²",
-                type: "Приточно-вытяжная вентиляция",
-                status: "Завершен"
-              },
-              {
-                title: "Производственный цех",
-                area: "8,500 м²",
-                type: "Промышленная вентиляция",
-                status: "Завершен"
-              },
-              {
-                title: "Офисный центр",
-                area: "12,000 м²",
-                type: "Комфортная вентиляция",
-                status: "Завершен"
-              },
-              {
-                title: "Складской комплекс",
-                area: "20,000 м²",
-                type: "Вытяжная вентиляция",
-                status: "Завершен"
-              },
-              {
-                title: "Медицинский центр",
-                area: "3,500 м²",
-                type: "Чистые помещения",
-                status: "Завершен"
-              },
-              {
-                title: "Пищевое производство",
-                area: "6,000 м²",
-                type: "Специальная вентиляция",
-                status: "Завершен"
-              }
-            ].map((project, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle className="text-lg">{project.title}</CardTitle>
-                  <Badge variant="secondary" className="w-fit">
-                    {project.status}
-                  </Badge>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Площадь:</span>
-                      <span className="font-semibold">{project.area}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Тип:</span>
-                      <span className="font-semibold text-sm">{project.type}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <ProjectGallery />
         </div>
       </section>
 
@@ -346,44 +307,7 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 p-8 rounded-lg">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Оставьте заявку</h3>
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Имя
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ваше имя"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Телефон
-                  </label>
-                  <input
-                    type="tel"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="+7 (___) ___-__-__"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Сообщение
-                  </label>
-                  <textarea
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Опишите ваш проект..."
-                  />
-                </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                  Отправить заявку
-                </Button>
-              </form>
-            </div>
+            <ContactForm onSubmit={handleFormSubmit} />
           </div>
         </div>
       </section>
@@ -431,6 +355,14 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Admin Panel */}
+      {isAuthenticated && (
+        <AdminPanel 
+          isOpen={isAdminOpen} 
+          onClose={() => setIsAdminOpen(false)} 
+        />
+      )}
     </div>
   );
 };
