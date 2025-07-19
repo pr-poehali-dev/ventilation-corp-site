@@ -1,351 +1,402 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useContentStore, ContentItem } from '@/store/contentStore';
+import { toast } from 'sonner';
 
-interface AdminPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState('services');
-  const [services, setServices] = useState([
-    { id: 1, title: 'Проектирование', description: 'Разработка проектов вентиляции с учетом всех требований и норм', icon: 'Settings' },
-    { id: 2, title: 'Монтаж', description: 'Профессиональная установка систем вентиляции любой сложности', icon: 'Wrench' },
-    { id: 3, title: 'Обслуживание', description: 'Техническое обслуживание и ремонт вентиляционных систем', icon: 'ShieldCheck' }
-  ]);
-
-  const [projects, setProjects] = useState([
-    { id: 1, title: 'Торговый центр', area: '15,000 м²', type: 'Приточно-вытяжная вентиляция', status: 'Завершен', image: '/img/c9b59a89-bfd6-4245-982b-8496c335fbb9.jpg' },
-    { id: 2, title: 'Производственный цех', area: '8,500 м²', type: 'Промышленная вентиляция', status: 'Завершен', image: '/img/e0dd3f82-89d5-4177-afb0-1825eda98241.jpg' }
-  ]);
-
-  const [contacts, setContacts] = useState({
-    address: 'г. Москва, ул. Промышленная, д. 15',
-    phone: '+7 (495) 123-45-67',
-    email: 'info@ventstroi.ru',
-    hours: 'Пн-Пт: 8:00-18:00, Сб: 9:00-15:00'
+const AdminPanel = () => {
+  const { content, isAdminMode, setAdminMode, updateContent, addContent, deleteContent } = useContentStore();
+  const [selectedPage, setSelectedPage] = useState<string>('home');
+  const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newItem, setNewItem] = useState<Partial<ContentItem>>({
+    type: 'text',
+    page: 'home',
+    section: 'main',
+    value: '',
+    metadata: {}
   });
 
-  const handleServiceUpdate = (id: number, field: string, value: string) => {
-    setServices(prev => prev.map(service => 
-      service.id === id ? { ...service, [field]: value } : service
-    ));
+  useEffect(() => {
+    useContentStore.getState().initializeDefaultContent();
+  }, []);
+
+  const pages = ['home', 'services', 'products', 'projects', 'certificates', 'contacts'];
+  
+  const getContentByPage = (page: string) => {
+    return content.filter(item => item.page === page);
   };
 
-  const handleProjectUpdate = (id: number, field: string, value: string) => {
-    setProjects(prev => prev.map(project => 
-      project.id === id ? { ...project, [field]: value } : project
-    ));
+  const handleSave = (item: ContentItem, newValue: string, newMetadata?: any) => {
+    updateContent(item.id, newValue, newMetadata);
+    setEditingItem(null);
+    toast.success('Контент обновлен');
   };
 
-  const handleContactUpdate = (field: string, value: string) => {
-    setContacts(prev => ({ ...prev, [field]: value }));
+  const handleAddItem = () => {
+    if (newItem.value && newItem.page && newItem.section && newItem.type) {
+      addContent(newItem as Omit<ContentItem, 'id'>);
+      setNewItem({
+        type: 'text',
+        page: 'home',
+        section: 'main',
+        value: '',
+        metadata: {}
+      });
+      setIsAddDialogOpen(false);
+      toast.success('Элемент добавлен');
+    }
   };
 
-  const addNewService = () => {
-    const newService = {
-      id: Date.now(),
-      title: 'Новая услуга',
-      description: 'Описание новой услуги',
-      icon: 'Plus'
-    };
-    setServices(prev => [...prev, newService]);
+  const handleDeleteItem = (id: string) => {
+    deleteContent(id);
+    toast.success('Элемент удален');
   };
 
-  const addNewProject = () => {
-    const newProject = {
-      id: Date.now(),
-      title: 'Новый проект',
-      area: '0 м²',
-      type: 'Тип проекта',
-      status: 'В процессе',
-      image: '/img/placeholder.svg'
-    };
-    setProjects(prev => [...prev, newProject]);
+  const uploadImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const deleteService = (id: number) => {
-    setServices(prev => prev.filter(service => service.id !== id));
+  const handleImageUpload = async (item: ContentItem, file: File) => {
+    try {
+      const imageUrl = await uploadImage(file);
+      updateContent(item.id, imageUrl, { ...item.metadata, alt: item.metadata?.alt || file.name });
+      toast.success('Изображение загружено');
+    } catch (error) {
+      toast.error('Ошибка загрузки изображения');
+    }
   };
 
-  const deleteProject = (id: number) => {
-    setProjects(prev => prev.filter(project => project.id !== id));
-  };
-
-  if (!isOpen) return null;
+  if (!isAdminMode) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <Button
+          onClick={() => setAdminMode(true)}
+          className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+        >
+          <Icon name="Settings" className="h-4 w-4 mr-2" />
+          Админ панель
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-auto">
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Админ панель</h2>
-            <p className="text-gray-600">Управление контентом сайта</p>
+      <Card className="w-full max-w-6xl h-[90vh] overflow-hidden">
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Icon name="Settings" className="h-5 w-5" />
+                Админ панель
+              </CardTitle>
+              <CardDescription>
+                Управление всем контентом сайта
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                variant="outline"
+              >
+                <Icon name="Plus" className="h-4 w-4 mr-2" />
+                Добавить элемент
+              </Button>
+              <Button
+                onClick={() => setAdminMode(false)}
+                variant="outline"
+              >
+                <Icon name="X" className="h-4 w-4 mr-2" />
+                Закрыть
+              </Button>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <Icon name="X" className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="services">Услуги</TabsTrigger>
-              <TabsTrigger value="projects">Проекты</TabsTrigger>
-              <TabsTrigger value="contacts">Контакты</TabsTrigger>
-              <TabsTrigger value="settings">Настройки</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="services" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Управление услугами</h3>
-                <Button onClick={addNewService} className="flex items-center gap-2">
-                  <Icon name="Plus" className="h-4 w-4" />
-                  Добавить услугу
-                </Button>
-              </div>
-              
-              <div className="grid gap-4">
-                {services.map((service) => (
-                  <Card key={service.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">Услуга #{service.id}</CardTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => deleteService(service.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Icon name="Trash2" className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor={`service-title-${service.id}`}>Название</Label>
-                          <Input
-                            id={`service-title-${service.id}`}
-                            value={service.title}
-                            onChange={(e) => handleServiceUpdate(service.id, 'title', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`service-icon-${service.id}`}>Иконка</Label>
-                          <Input
-                            id={`service-icon-${service.id}`}
-                            value={service.icon}
-                            onChange={(e) => handleServiceUpdate(service.id, 'icon', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor={`service-description-${service.id}`}>Описание</Label>
-                        <Textarea
-                          id={`service-description-${service.id}`}
-                          value={service.description}
-                          onChange={(e) => handleServiceUpdate(service.id, 'description', e.target.value)}
-                          rows={3}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+        </CardHeader>
+        
+        <CardContent className="p-0 h-full overflow-y-auto">
+          <Tabs value={selectedPage} onValueChange={setSelectedPage} className="h-full">
+            <div className="border-b p-4">
+              <TabsList className="grid w-full grid-cols-6">
+                {pages.map((page) => (
+                  <TabsTrigger key={page} value={page} className="capitalize">
+                    {page === 'home' ? 'Главная' : 
+                     page === 'services' ? 'Услуги' :
+                     page === 'products' ? 'Продукция' :
+                     page === 'projects' ? 'Проекты' :
+                     page === 'certificates' ? 'Сертификаты' : 'Контакты'}
+                  </TabsTrigger>
                 ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="projects" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Управление проектами</h3>
-                <Button onClick={addNewProject} className="flex items-center gap-2">
-                  <Icon name="Plus" className="h-4 w-4" />
-                  Добавить проект
-                </Button>
-              </div>
-              
-              <div className="grid gap-4">
-                {projects.map((project) => (
-                  <Card key={project.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">Проект #{project.id}</CardTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => deleteProject(project.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Icon name="Trash2" className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor={`project-title-${project.id}`}>Название</Label>
-                          <Input
-                            id={`project-title-${project.id}`}
-                            value={project.title}
-                            onChange={(e) => handleProjectUpdate(project.id, 'title', e.target.value)}
-                          />
+              </TabsList>
+            </div>
+            
+            {pages.map((page) => (
+              <TabsContent key={page} value={page} className="p-4 space-y-4">
+                <div className="grid gap-4">
+                  {getContentByPage(page).map((item) => (
+                    <Card key={item.id} className="relative">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{item.type}</Badge>
+                            <Badge variant="secondary">{item.section}</Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingItem(item)}
+                            >
+                              <Icon name="Edit" className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteItem(item.id)}
+                            >
+                              <Icon name="Trash" className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor={`project-area-${project.id}`}>Площадь</Label>
-                          <Input
-                            id={`project-area-${project.id}`}
-                            value={project.area}
-                            onChange={(e) => handleProjectUpdate(project.id, 'area', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor={`project-type-${project.id}`}>Тип</Label>
-                          <Input
-                            id={`project-type-${project.id}`}
-                            value={project.type}
-                            onChange={(e) => handleProjectUpdate(project.id, 'type', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`project-status-${project.id}`}>Статус</Label>
-                          <Input
-                            id={`project-status-${project.id}`}
-                            value={project.status}
-                            onChange={(e) => handleProjectUpdate(project.id, 'status', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor={`project-image-${project.id}`}>Изображение (URL)</Label>
-                        <Input
-                          id={`project-image-${project.id}`}
-                          value={project.image}
-                          onChange={(e) => handleProjectUpdate(project.id, 'image', e.target.value)}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="contacts" className="space-y-4">
-              <h3 className="text-lg font-semibold">Управление контактами</h3>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Контактная информация</CardTitle>
-                  <CardDescription>Редактировать контактные данные компании</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="contact-address">Адрес</Label>
-                    <Input
-                      id="contact-address"
-                      value={contacts.address}
-                      onChange={(e) => handleContactUpdate('address', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="contact-phone">Телефон</Label>
-                    <Input
-                      id="contact-phone"
-                      value={contacts.phone}
-                      onChange={(e) => handleContactUpdate('phone', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="contact-email">Email</Label>
-                    <Input
-                      id="contact-email"
-                      value={contacts.email}
-                      onChange={(e) => handleContactUpdate('email', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="contact-hours">Режим работы</Label>
-                    <Input
-                      id="contact-hours"
-                      value={contacts.hours}
-                      onChange={(e) => handleContactUpdate('hours', e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="settings" className="space-y-4">
-              <h3 className="text-lg font-semibold">Настройки сайта</h3>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Общие настройки</CardTitle>
-                  <CardDescription>Основные параметры сайта</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="site-name">Название сайта</Label>
-                    <Input id="site-name" defaultValue="ВентСтрой" />
-                  </div>
-                  <div>
-                    <Label htmlFor="site-description">Описание</Label>
-                    <Textarea 
-                      id="site-description" 
-                      defaultValue="Профессиональные решения в области вентиляции и кондиционирования"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="site-keywords">Ключевые слова</Label>
-                    <Input id="site-keywords" defaultValue="вентиляция, кондиционирование, монтаж" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Резервное копирование</CardTitle>
-                  <CardDescription>Создание и восстановление резервных копий</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-4">
-                    <Button variant="outline">
-                      <Icon name="Download" className="h-4 w-4 mr-2" />
-                      Скачать резервную копию
-                    </Button>
-                    <Button variant="outline">
-                      <Icon name="Upload" className="h-4 w-4 mr-2" />
-                      Загрузить резервную копию
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      </CardHeader>
+                      <CardContent>
+                        {item.type === 'image' ? (
+                          <div className="space-y-2">
+                            <img 
+                              src={item.value} 
+                              alt={item.metadata?.alt || 'Изображение'} 
+                              className="w-32 h-32 object-cover rounded border"
+                            />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleImageUpload(item, file);
+                                }
+                              }}
+                              className="text-sm"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-600 break-words">
+                            {item.value}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+            ))}
           </Tabs>
+        </CardContent>
+      </Card>
 
-          <Separator className="my-6" />
+      {/* Edit Dialog */}
+      <Dialog open={editingItem !== null} onOpenChange={() => setEditingItem(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Редактировать контент</DialogTitle>
+            <DialogDescription>
+              Измените содержимое элемента
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={onClose}>
-              Отменить
+          {editingItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Тип</Label>
+                  <Badge variant="outline">{editingItem.type}</Badge>
+                </div>
+                <div>
+                  <Label>Раздел</Label>
+                  <Badge variant="secondary">{editingItem.section}</Badge>
+                </div>
+              </div>
+              
+              {editingItem.type === 'image' ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Текущее изображение</Label>
+                    <img 
+                      src={editingItem.value} 
+                      alt={editingItem.metadata?.alt || 'Изображение'} 
+                      className="w-48 h-48 object-cover rounded border mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label>Загрузить новое изображение</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(editingItem, file);
+                        }
+                      }}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label>Alt текст</Label>
+                    <Input
+                      value={editingItem.metadata?.alt || ''}
+                      onChange={(e) => {
+                        updateContent(editingItem.id, editingItem.value, {
+                          ...editingItem.metadata,
+                          alt: e.target.value
+                        });
+                      }}
+                      placeholder="Описание изображения"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Label>Содержимое</Label>
+                  {editingItem.type === 'description' ? (
+                    <Textarea
+                      value={editingItem.value}
+                      onChange={(e) => {
+                        updateContent(editingItem.id, e.target.value);
+                      }}
+                      className="mt-2"
+                      rows={4}
+                    />
+                  ) : (
+                    <Input
+                      value={editingItem.value}
+                      onChange={(e) => {
+                        updateContent(editingItem.id, e.target.value);
+                      }}
+                      className="mt-2"
+                    />
+                  )}
+                </div>
+              )}
+              
+              {editingItem.type === 'button' && (
+                <div>
+                  <Label>Ссылка</Label>
+                  <Input
+                    value={editingItem.metadata?.href || ''}
+                    onChange={(e) => {
+                      updateContent(editingItem.id, editingItem.value, {
+                        ...editingItem.metadata,
+                        href: e.target.value
+                      });
+                    }}
+                    placeholder="/services"
+                    className="mt-2"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setEditingItem(null)} variant="outline">
+              Отмена
             </Button>
-            <Button>
-              Сохранить изменения
+            <Button onClick={() => editingItem && handleSave(editingItem, editingItem.value, editingItem.metadata)}>
+              Сохранить
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить новый элемент</DialogTitle>
+            <DialogDescription>
+              Создайте новый элемент контента
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Страница</Label>
+                <Select value={newItem.page} onValueChange={(value) => setNewItem({...newItem, page: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pages.map((page) => (
+                      <SelectItem key={page} value={page}>{page}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>Тип</Label>
+                <Select value={newItem.type} onValueChange={(value) => setNewItem({...newItem, type: value as any})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Текст</SelectItem>
+                    <SelectItem value="title">Заголовок</SelectItem>
+                    <SelectItem value="description">Описание</SelectItem>
+                    <SelectItem value="button">Кнопка</SelectItem>
+                    <SelectItem value="image">Изображение</SelectItem>
+                    <SelectItem value="card">Карточка</SelectItem>
+                    <SelectItem value="list">Список</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label>Раздел</Label>
+              <Input
+                value={newItem.section}
+                onChange={(e) => setNewItem({...newItem, section: e.target.value})}
+                placeholder="hero, services, about..."
+              />
+            </div>
+            
+            <div>
+              <Label>Содержимое</Label>
+              <Textarea
+                value={newItem.value}
+                onChange={(e) => setNewItem({...newItem, value: e.target.value})}
+                placeholder="Введите текст или URL изображения"
+              />
+            </div>
           </div>
-        </div>
-      </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setIsAddDialogOpen(false)} variant="outline">
+              Отмена
+            </Button>
+            <Button onClick={handleAddItem}>
+              Добавить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
